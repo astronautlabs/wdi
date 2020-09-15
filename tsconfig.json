@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "target": "ES2016",
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "declaration": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "sourceMap": true,
+        "esModuleInterop": true
+    },
+    "include": [
+        "./**/*.ts"
+    ]
+}
