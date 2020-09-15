@@ -12,7 +12,8 @@
 WDI (the Web Device Interface) is a client/server media transport scheme 
 based on WebRTC and WebSockets. You can use WDI to push arbitrary 
 audio/video streams from a web browser application to a server, as well as 
-pull streams down from such a server in real time. 
+pull streams down from such a server in real time. You can also
+use it between two servers to replace RTMP.
 
 The design goals of WDI are:
 - **Elegant**, simple yet powerful
