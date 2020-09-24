@@ -1,6 +1,6 @@
 # @/wdi
 
-[![Version](https://img.shields.io/npm/v/@astronautlabs/wdi.svg)](https://www.npmjs.com/package/@astronautlabd/wdi)
+[![Version](https://img.shields.io/npm/v/@astronautlabs/wdi.svg)](https://www.npmjs.com/package/@astronautlabs/wdi)
 
 > **Alpha Quality**  
 > This software is very new and unstable. Use with caution, and avoid use in 
