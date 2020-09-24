@@ -16,9 +16,9 @@ export interface IdentifiedStream {
 
 export interface PendingRequest {
     request : WDIRequest;
-    promise : Promise<any>;
-    resolve(value : any);
-    reject(error : any);
+    promise? : Promise<any>;
+    resolve?(value : any);
+    reject?(error : any);
 }
 
 export interface WDIMessage {

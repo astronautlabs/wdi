@@ -43,9 +43,9 @@ export class WDIServer {
         throw new Error(`No provider for stream with identity '${JSON.stringify(identity)}'`);
     }
 
-    accept(socket : WebSocket) {
+    async accept(socket : WebSocket) {
         let session = new WDISession();
-        session.setSocket(socket);
+        await session.setSocket(socket);
 
         session.addStreamResolver(async identity => await this.provideStream(identity));            
         session.socket.addEventListener('close', () => this.onDisconnect(session));

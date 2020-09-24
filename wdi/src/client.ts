@@ -43,28 +43,25 @@ export class WDIClient extends WDISession {
     private _reconnectTime = 10;
 
     async connect() {
+        let socket = new WebSocket(this.url);
+        
         await new Promise((onConnected, onError) => {
             this._intentToConnect = true;
-            this.setSocket(new WebSocket(this.url));
-            this.socket.addEventListener('error', async event => {
+
+            socket.addEventListener('error', async event => {
                 this.onError(event);
                 onError(new Error(`Error connecting to websocket`));
             });
 
-            this.socket.addEventListener('open', async () => (this.onConnect(), onConnected()));
+            socket.addEventListener('open', async () => onConnected());
         });
+        
+        await this.setSocket(socket);
     }
 
     async disconnect(notify = true) {
         this._intentToConnect = false;
         super.disconnect(notify);
-    }
-
-    private async onConnect() {
-        this.setupPeerConnection();
-        let offer = await this.connection.createOffer();
-        this.connection.setLocalDescription(offer);
-        this.sendRTC({ type: 'offer', offer });
     }
 
     private onError(event: Event) {

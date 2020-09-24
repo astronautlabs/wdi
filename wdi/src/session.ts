@@ -56,6 +56,9 @@ export class WDISession {
     }
 
     private async onIdentifyStream(request : WDIStreamIdentityMessage) {
+        console.log(`[WDI] Remote has announced stream ${request.streamId} with identity:`);
+        console.dir(request.identity);
+        
         this._streamIdentities.set(request.streamId, request.identity);
     }
 
@@ -113,8 +116,10 @@ export class WDISession {
         });
 
         this.connection.onicecandidateerror = ev => {
-            console.log(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
-            console.error(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
+            if (ev.errorCode !== 701) {
+                console.log(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
+                console.error(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
+            }
         };
 
         this.connection.onconnectionstatechange = ev => {
@@ -139,20 +144,38 @@ export class WDISession {
             console.log(`[RTC] Negotiation needed...`);
             let sdp = await this.connection.createOffer();
             await this.connection.setLocalDescription(sdp);
+
+            // console.log(`=========== SENDING OFFER =============`);
+            // console.log(sdp.sdp);
+            // console.log(`=======================================`);
+
             this.sendRTC({ type: 'offer', offer: sdp });
         };
 
         this.connection.ontrack = ev => {
+            console.log(`[RTC] Receiving ${ev.track.kind} track ${ev.track.id}`);
+            console.log(`      Streams:`);
+            for (let stream of ev.streams) {
+                console.log(`      - [${stream.getAudioTracks().length} audio, ${stream.getVideoTracks().length} video] ${stream.id}`);
+            }
+
+            let added = 0;
+
             ev.streams.forEach(stream => {
                 let identity = this._streamIdentities.get(stream.id);
                 let identifiedStream : IdentifiedStream = { identity, stream };
-                this._remoteStreams.add(identifiedStream);
-                this._remoteStreamAdded.next(identifiedStream);
-            });
-            this._remoteStreamsChanged.next(Array.from(this._remoteStreams));
-        };
 
-        this.streams.forEach(stream => this.addStreamToConnection(stream));
+                if (!Array.from(this._remoteStreams.values()).some(x => x.stream.id === stream.id)) {
+                    console.log(`[WDI] Setting up incoming remote stream ${stream.id}, ${stream.getAudioTracks().length} audio tracks, ${stream.getVideoTracks().length} video tracks`);
+                    this._remoteStreams.add(identifiedStream);
+                    this._remoteStreamAdded.next(identifiedStream);
+                    ++added;
+                }
+            });
+
+            if (added > 0)
+                this._remoteStreamsChanged.next(Array.from(this._remoteStreams));
+        };
     }
 
     sendMessage(message: WDIMessage) {
@@ -219,12 +242,8 @@ export class WDISession {
         let id = uuid();
         let state : PendingRequest;
         
-        state = {
-            request: <WDIRequest>Object.assign({}, message, { $rq: id }),
-            promise: new Promise((rs, rj) => (state.resolve = rs, state.reject = rj)),
-            reject: null,
-            resolve: null
-        };
+        state = { request: <WDIRequest>Object.assign({}, message, { $rq: id }) };
+        state.promise = new Promise((rs, rj) => (state.resolve = rs, state.reject = rj));
 
         this._outstandingRequests.set(id, state);
         this.sendMessage(state.request);
@@ -240,24 +259,40 @@ export class WDISession {
 
     private streams : AddedStream[] = [];
 
-    addStream(stream : MediaStream, identity : string | StreamIdentity) {
+    async addStream(stream : MediaStream, identity : string | StreamIdentity) {
+        console.log(`[WDI] Adding outgoing stream ${stream.id}`);
         let addedStream : AddedStream = {
             identity: typeof identity === 'string' ? { url: identity } : identity,
             stream
         };
 
         this.streams.push(addedStream);
-        if (this.connection) {
-            this.addStreamToConnection(addedStream);
-        }
+        await this.addStreamToConnection(addedStream);
     }
     
-    private addStreamToConnection(addedStream : AddedStream) {
+    private async addStreamToConnection(addedStream : AddedStream) {
+        if (!this.socket)
+            return;
+
+        console.log(`[WDI] Adding stream to RTC connection...`);
         for (let track of addedStream.stream.getTracks()) {
-            this.connection.addTrack(track, addedStream.stream);
+            let sender = this.connection.addTrack(track, addedStream.stream);
+            let params = sender.getParameters();
+
+            params.degradationPreference = 'maintain-resolution';
+            params.priority = 'high';
+            sender.setParameters(params);
         }
 
-        this.sendMessage(<WDIStreamIdentityMessage>{ type: 'identifyStream', streamId: addedStream.stream.id, identity: addedStream.identity });
+        await this.announceStream(addedStream);
+    }
+
+    private async announceStream(addedStream : AddedStream) {
+        if (!this._socket)
+            return;
+        
+        console.log(`[WDI] Announcing stream to peer: ${addedStream.stream.id}`);
+        await this.sendRequest(<WDIStreamIdentityMessage>{ type: 'identifyStream', streamId: addedStream.stream.id, identity: addedStream.identity });
     }
 
     private setupChannel() {
@@ -294,9 +329,10 @@ export class WDISession {
         }
     }
 
-    public setSocket(socket : WebSocket) {
+    public async setSocket(socket : WebSocket) {
         this._socket = socket;
         this._socket.addEventListener('message', ev => this.onMessage(ev));
+        await Promise.all(Array.from(this.streams).map(stream => this.addStreamToConnection(stream)));
     }
 
     async onMessage(event: MessageEvent) {
@@ -359,14 +395,28 @@ export class WDISession {
                 pc.setRemoteDescription(message.rtcMessage.offer);
                 let answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
+                
+                // console.log(`=========== SENDING ANSWER =============`);
+                // console.log(answer.sdp);
+                // console.log(`=======================================`);
+
                 this.sendRTC({ type: 'answer', answer });
             } else if (message.rtcMessage.type === 'answer') {
                 pc.setRemoteDescription(message.rtcMessage.answer);
             } else if (message.rtcMessage.type === 'candidate') {
-                pc.addIceCandidate(message.rtcMessage.candidate);
+
+                if (!message.rtcMessage.candidate) {
+                    console.log(`[WDI] End of ICE candidates.`);
+                } else {
+                    pc.addIceCandidate(message.rtcMessage.candidate);
+                }
             }
         } else {
-            console.warn(`Unrecognized command type ${message.type}`);
+            if (this._requestHandlers.has(message.type)) {
+                console.error(`[WDI] Error: Client sent request of type '${message.type}' as a message (missing $rq field)`);
+            } else {
+                console.error(`[WDI] Error: Unrecognized command type ${message.type}.`);
+            }
         }
     }
 
