@@ -33,3 +33,69 @@ The design goals of WDI are:
 
 WDI is a play on [SDI (Serial Digital Interface)](https://en.m.wikipedia.org/wiki/Serial_digital_interface), 
 which is the standard way to transport media in a broadcast grade video network.
+
+# Reference Implementation
+
+WDI is a specification, but we also develop a reference implementation in Typescript
+that provides both client and server functionality. We publish it to NPM as 
+`@astronautlabs/wdi`, and you can use it to easily add WDI support to any Javascript 
+or Typescript app.
+
+## Usage in the Browser
+
+For the browser, it is sufficient to just install the reference implementation:
+
+```
+npm install wdi
+```
+
+Within the package you will find a class called `WDIClient` that lets you easily
+establish connections to WDI servers (via WebSockets and WebRTC).
+
+```typescript
+let client = new WDIClient(`wss://mywdiserver.example.com:1234/path`);
+await client.addStream(this.stream, {
+  destination: this.rtmpUrl
+});
+await client.connect();
+```
+
+## Usage on the Server
+
+In addition to WDI itself, you will need implementations for WebRTC and WebSockets. We recommend `wrtc` (based on Google's `libwebrtc`) and 
+`ws`, but you can use any standards compliant implementations.
+
+```
+npm install wdi wrtc
+```
+
+You'll need to ensure that the `RTCPeerConnection` class from your chosen
+implementation is available in the global scope before trying to use WDI.
+
+```typescript
+import { RTCPeerConnection } from 'wrtc';
+global['RTCPeerConnection'] = RTCPeerConnection;
+```
+
+Your server application will be responsible for accepting incoming `WebSocket` 
+sessions and passing them to an instance of `WDIServer`. 
+
+```typescript
+import { WDIServer } from '@astronautlabs/wdi';
+import { WebSocket } from 'ws';
+
+// Construct a WDI server instance and subscribe 
+// to incoming remote streams. 
+
+const wdiServer = new WDIServer();
+wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
+  let stream : MediaStream = identifiedStream.stream;
+  // do something with the stream (perhaps guided by identifiedStream.identity)
+});
+
+// Start a WebSocket server and pass clients to the WDI server
+new WebSocket.Server({ port: 3000 })
+  .addListener('connection', socket => wdiServer.accept(<any>socket))
+;
+
+```
