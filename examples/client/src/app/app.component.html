@@ -1,0 +1,27 @@
+<h1>WDI Client Example</h1>
+
+<p>This app will send your camera to the WDI server of choice.</p>
+
+<ng-container *ngIf="!stream">
+  <p>To get started, click below to start your camera</p>
+  <button (click)="acquireCamera()">Start camera</button>
+</ng-container>
+<ng-container *ngIf="stream">
+
+  <video autoplay muted [srcObject]="stream"></video>
+
+  <ng-container *ngIf="!client">
+    <p>Enter a server to send to:</p>
+
+    <input type="text" [(ngModel)]="serverUrl" />
+    <button (click)="startSending()">Start sending</button>
+  </ng-container>
+  <ng-container *ngIf="client">
+    <ng-container *ngIf="!connected">
+      Connecting...
+    </ng-container>
+    <ng-container *ngIf="connected">
+      Connected!
+    </ng-container>
+  </ng-container>
+</ng-container>
