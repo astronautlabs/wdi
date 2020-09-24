@@ -60,6 +60,31 @@ await client.connect();
 
 You can also pass arbitrary metadata with your stream.
 
+```typescript
+await client.addStream(someMediaStream, {
+  yourDataHere: 123
+});
+```
+
+For convenience, you can pass a URL as the identity parameter 
+instead. 
+
+```typescript
+await client.addStream(someMediaStream, 'https://example.com/');
+```
+
+WDI will expand this into a `StreamIdentity` object like so:
+
+```json
+{
+  "url": "https://example.com/"
+}
+```
+
+Note that WDI itself assigns no special meaning to the identity data passed 
+alongside a stream. The meaning needs to be agreed upon between the client and 
+server applications.
+
 ## Usage on the Server
 
 In addition to WDI itself, you will need implementations for WebRTC and WebSockets. We recommend `wrtc` (based on Google's `libwebrtc`) and 
@@ -99,3 +124,34 @@ new WebSocket.Server({ port: 3000 })
 ;
 
 ```
+For metadata sent alongside the stream from the client,
+see `identifiedStream.identity`. 
+
+The types of things you can do with the MediaStream depends on the WebRTC 
+implementation you have selected. The `wrtc` package offers a set of classes
+that let you send/receive raw audio/video data from streams sent over WebSockets.
+For that, see `RTCVideoSink`, `RTCVideoSource`, `RTCAudioSink`, `RTCAudioSource`.
+
+Note that operations on video frames (especially 1080p and up) are expensive, you
+should take care to minimize unnecessary copies or frame transformations. For more
+information see [Performance](#Performance).
+
+## Performance
+
+The reference implementation is very small and does none of the heavy lifting.
+The performance you observe will be heavily dependent on what you do with the 
+media streams being sent/received. 
+
+### Transforming Video Frames
+
+Raw video frames at modern resolutions are very large. Copying, converting, scaling 
+and rotating video frames efficiently requires use of the host CPU's SIMD 
+(single input, multple destination) instructions, or at least a highly optimized 
+naive implementation. The easiest way to achieve this is to offload frame 
+manipulation to WebAssembly (in the browser) and native C/C++/Rust addons (on Node.js).
+
+The included server example utilizes Astronaut Labs' `libyuv` NPM package, which is a native add-on
+for Node.js which exposes all of Chromium's `libyuv` library, which is written in C/C++ 
+and implements SIMD on x64, ARM and MIPS. This Node.js binding is created and maintained by Astronaut Labs, the original authors of WDI).
+`libyuv` provides color space conversions, scaling, and rotation routines for 
+raw video frames, like the kind produced by `wrtc`.
