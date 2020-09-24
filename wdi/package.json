@@ -1,6 +1,6 @@
 {
   "name": "@astronautlabs/wdi",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A web-native media transport protocol to replace RTMP",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
