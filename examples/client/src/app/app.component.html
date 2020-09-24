@@ -11,9 +11,16 @@
   <video autoplay muted [srcObject]="stream"></video>
 
   <ng-container *ngIf="!client">
-    <p>Enter a server to send to:</p>
+    <p>Enter a WDI server to connect to:</p>
 
     <input type="text" [(ngModel)]="serverUrl" />
+    
+    <p>Enter a destination RTMP server. The WDI server will be told 
+      to direct your video to the given RTMP server.</p>
+      
+      <input type="text" [(ngModel)]="rtmpUrl" placeholder="rtmp://server/streamname/streamkey" />
+    <br/>
+    <br/>
     <button (click)="startSending()">Start sending</button>
   </ng-container>
   <ng-container *ngIf="client">

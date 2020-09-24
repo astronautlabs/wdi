@@ -1,0 +1,25 @@
+{
+  "name": "@astronautlabs/wdi-example-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "npm run build && node dist/server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Astronaut Labs",
+  "license": "MIT",
+  "dependencies": {
+    "@byslin/fluent-ffmpeg-multistream": "^1.0.0",
+    "canvas": "^2.6.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "fluent-ffmpeg-multistream": "^1.0.0",
+    "wrtc": "^0.4.6",
+    "ws": "^7.3.1"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.15",
+    "@types/ws": "^7.2.6"
+  }
+}

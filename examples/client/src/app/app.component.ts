@@ -14,6 +14,7 @@ export class AppComponent {
 
   stream : MediaStream;
   serverUrl : string = 'ws://localhost:3000';
+  rtmpUrl : string;
 
   async acquireCamera() {
     try {
@@ -35,7 +36,9 @@ export class AppComponent {
 
   async startSending() {
     this.client = new WDIClient(this.serverUrl);
-    await this.client.addStream(this.stream, 'my-webcam');
+    await this.client.addStream(this.stream, {
+      destination: this.rtmpUrl
+    });
 
     this.connected = false;
     console.log(`[WDI/example-client] Connecting to WDI server ${this.serverUrl}`);
