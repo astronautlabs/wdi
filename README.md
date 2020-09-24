@@ -54,11 +54,11 @@ establish connections to WDI servers (via WebSockets and WebRTC).
 
 ```typescript
 let client = new WDIClient(`wss://mywdiserver.example.com:1234/path`);
-await client.addStream(this.stream, {
-  destination: this.rtmpUrl
-});
+await client.addStream(someMediaStream);
 await client.connect();
 ```
+
+You can also pass arbitrary metadata with your stream.
 
 ## Usage on the Server
 
