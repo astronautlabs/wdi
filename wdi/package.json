@@ -1,7 +1,7 @@
 {
   "name": "@astronautlabs/wdi",
   "version": "0.0.2",
-  "description": "",
+  "description": "A web-native media transport protocol to replace RTMP",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -9,7 +9,18 @@
     "prepublishOnly": "npm test",
     "test": "npm run build"
   },
-  "author": "Astronaut Labs",
+  "keywords": ["webrtc", "streaming", "media", "websockets"],
+  "author": {
+    "name": "Astronaut Labs",
+    "url": "https://astronautlabs.com/"
+  },
+  "homepage": "https://github.com/astronautlabs/wdi/issues",
+  "repository": {
+    "url": "git@github.com:astronautlabs/wdi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/astronautlabs/wdi/issues"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/uuid": "^8.3.0"
