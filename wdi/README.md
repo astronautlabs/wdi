@@ -1,10 +1,7 @@
 # @/wdi » Reference Implementation
-
 ## A web-native media transport protocol to replace RTMP
 
-
-
-[Home](../README.md) | Reference Implementation | [Example](https://github.com/astronautlabs/wdi/blob/master/example/README.md)
+[Home](https://github.com/astronautlabs/wdi) | Reference Implementation | [Example](https://github.com/astronautlabs/wdi/blob/master/example/README.md)
 
 > **Alpha Quality**  
 > This software is very new and unstable. Use with caution, and avoid use in 

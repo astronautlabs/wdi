@@ -2,7 +2,7 @@
 
 ## A web-native media transport protocol to replace RTMP
 
-[Home](../README.md) | [Reference Implementation](https://github.com/astronautlabs/wdi/blob/master/wdi/README.md) | Example
+[Home](https://github.com/astronautlabs/wdi) | [Reference Implementation](https://github.com/astronautlabs/wdi/blob/master/wdi/README.md) | Example
 
 > **Alpha Quality**  
 > This software is very new and unstable. Use with caution, and avoid use in 
@@ -11,7 +11,7 @@
 
 ---
 
-This directory contains a simple Typescript example that demonstrates how to use the [reference implementation](../wdi/README.md) for [WDI](../README.md). The example includes both client and server components.
+This directory contains a simple Typescript example that demonstrates how to use the [reference implementation](https://github.com/astronautlabs/wdi/blob/master/wdi/README.md) for [WDI](https://github.com/astronautlabs/wdi). The example includes both client and server components.
 
 This example implements a rudimentary WDI->RTMP gateway for demonstration purposes.
 
