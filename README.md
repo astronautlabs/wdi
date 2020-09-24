@@ -46,7 +46,7 @@ or Typescript app.
 For the browser, it is sufficient to just install the reference implementation:
 
 ```
-npm install wdi
+npm install @astronautlabs/wdi
 ```
 
 Within the package you will find a class called `WDIClient` that lets you easily
@@ -66,7 +66,7 @@ In addition to WDI itself, you will need implementations for WebRTC and WebSocke
 `ws`, but you can use any standards compliant implementations.
 
 ```
-npm install wdi wrtc
+npm install @astronautlabs/wdi wrtc ws
 ```
 
 You'll need to ensure that the `RTCPeerConnection` class from your chosen
