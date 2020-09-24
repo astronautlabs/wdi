@@ -85,9 +85,38 @@ Note that WDI itself assigns no special meaning to the identity data passed
 alongside a stream. The meaning needs to be agreed upon between the client and 
 server applications.
 
+WDI servers can also forward streams to the client. You can listen for incoming 
+streams:
+
+```typescript
+client.remoteStreamAdded.subscribe(identifiedStream => {
+  let stream : MediaStream = identifiedStream.stream;
+  // do something with the stream
+});
+```
+
+The API for sending and receiving streams is isomorphic; it works the same on the 
+server as on the client. Both sides can also request that a new stream be delivered.
+
+```typescript
+client.acquireStream(identityMetadata)
+```
+
+You can receive acquired streams by listening to `remoteStreamAdded`, or by awaiting
+the promise returned by `acquireStream`
+
+```typescript
+let identifiedStream = await client.acquireStream(identityMetadata);
+```
+
+Conceptually, `acquireStream` just sends a simple message to the server. It is 
+then up to the server to produce and forward a stream to send back to the client 
+for that request. 
+
 ## Usage on the Server
 
-In addition to WDI itself, you will need implementations for WebRTC and WebSockets. We recommend `wrtc` (based on Google's `libwebrtc`) and 
+In addition to WDI itself, you will need implementations for WebRTC and 
+WebSockets. We recommend `wrtc` (based on Google's `libwebrtc`) and 
 `ws`, but you can use any standards compliant implementations.
 
 ```
@@ -133,8 +162,60 @@ that let you send/receive raw audio/video data from streams sent over WebSockets
 For that, see `RTCVideoSink`, `RTCVideoSource`, `RTCAudioSink`, `RTCAudioSource`.
 
 Note that operations on video frames (especially 1080p and up) are expensive, you
-should take care to minimize unnecessary copies or frame transformations. For more
-information see [Performance](#Performance).
+should take care to minimize unnecessary copies or frame transformations. For 
+more information see [Performance](#Performance).
+
+## Handling `acquireStream` requests
+
+You can handle `acquireStream` requests (see above) on both clients and servers 
+by subclassing `WDIClient` and/or `WDIServer` and implementing `provideStream`:
+
+```typescript
+protected async provideStream(identity : StreamIdentity): Promise<NonNullable<MediaStream>>;
+```
+
+If your application can provide a stream that matches the given identity (however
+you decide to interpret it), return it and the stream will be automatically returned
+across WebRTC to the requestor. 
+
+If your application cannot service the request, throw an error. WDI will catch 
+the error and send it back to the client, where it will be cause the promise 
+returned by `acquireStream()` to reject/throw.
+
+## Streams versus Tracks versus Transceivers
+
+WebRTC is built on RTP Transceivers. Sending MediaStreamTracks is built on top 
+of that, and sending MediaStreams themselves is only done indirectly. This allows
+WebRTC to be used for many use cases, including fast starting, changing media 
+configuration without renegotiation, reusing sockets etc.
+
+WDI does not directly expose transceivers and only allows you to send/receive 
+MediaStreams themselves. This does not mean you cannot extend WDI for your use
+case, but using MediaStreams as the atomic unit of media delivery allows WDI
+to be easy to use and reason about.
+
+That is not to say that you cannot send a single track (ie a video with no audio
+or audio without video). To do that, construct a new MediaStream around your 
+desired track(s):
+
+```typescript
+new MediaStream([ myTrack, ... ]);
+```
+
+## Adaptive Resolution
+
+WebRTC uses adaptive bitrate streaming to ensure quality of service for clients 
+which are bandwidth-limited, including adaptive resolution. This is important 
+to note, because you may not realize that the video frames given to you by 
+`wrtc` do not have a static width/height. Even on network links that are not 
+bandwidth-limited (like localhost), most WebRTC implementations start a new 
+stream at lower resolution and gradually ramp up resolution as the bandwidth 
+measurement system gets more data. 
+
+You will need to take this into account when you are directly handling video 
+frames. The included server example handles this by upscaling all frames to a 
+particular target resolution, which is the obvious strategy, but may not be 
+the ideal one depending on your use case.
 
 ## Performance
 
@@ -144,14 +225,16 @@ media streams being sent/received.
 
 ### Transforming Video Frames
 
-Raw video frames at modern resolutions are very large. Copying, converting, scaling 
-and rotating video frames efficiently requires use of the host CPU's SIMD 
-(single input, multple destination) instructions, or at least a highly optimized 
-naive implementation. The easiest way to achieve this is to offload frame 
-manipulation to WebAssembly (in the browser) and native C/C++/Rust addons (on Node.js).
+Raw video frames at modern resolutions are very large. Copying, converting, 
+scaling and rotating video frames efficiently requires use of the host CPU's 
+SIMD (single input, multple destination) instructions, or at least a highly 
+optimized naive implementation. The easiest way to achieve this is to offload 
+frame manipulation to WebAssembly (in the browser) and native C/C++/Rust addons 
+(on Node.js).
 
-The included server example utilizes Astronaut Labs' `libyuv` NPM package, which is a native add-on
-for Node.js which exposes all of Chromium's `libyuv` library, which is written in C/C++ 
-and implements SIMD on x64, ARM and MIPS. This Node.js binding is created and maintained by Astronaut Labs, the original authors of WDI).
+The included server example utilizes 
+[Astronaut Labs' `libyuv` NPM package](https://github.com/astronautlabs/libyuv-node), 
+a native add-on for Node.js that exposes Chromium's `libyuv` library.
+Chromium's `libyuv` is written in C++ and implements SIMD on x64, ARM and MIPS.
 `libyuv` provides color space conversions, scaling, and rotation routines for 
-raw video frames, like the kind produced by `wrtc`.
+raw video frames, like the kind produced by `wrtc`. 
