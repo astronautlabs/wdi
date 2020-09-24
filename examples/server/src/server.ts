@@ -11,25 +11,37 @@ import * as libyuv from 'libyuv';
 
 global['RTCPeerConnection'] = RTCPeerConnection;
 
-let wsServer = new WebSocket.Server({ port: 3000 });
-let wdiServer = new WDIServer();
-
 export interface Frame {
     width : number;
     height : number;
     data : Uint8ClampedArray;
 }
 
+// Start a WebSockets server (we'll use port 3000, but any will do)
+// Create a new instance of WDIServer. We'll glue these two together.
+
+let wsServer = new WebSocket.Server({ port: 3000 });
+let wdiServer = new WDIServer();
+
+// Wait for incoming connections and pass them to WDIServer to be handled
+// as they come in
+
 wsServer.addListener('connection', socket => wdiServer.accept(<any>socket));
 
+// Subscribe to updates from the WDIServer instance on incoming streams.
+
 wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
-    
     let stream = identifiedStream.stream;
     let destinationUrl : string = identifiedStream.identity.destination;
 
     console.log(`[WDI/example-server] Received stream from client with ${stream.getTracks().length} tracks`);
     console.log(`[WDI/example-server] Identity:`);
     console.dir(identifiedStream.identity);
+
+    // This example is a simple WDI->RTMP gateway. 
+    // We'll pipe incoming audio/video from the WDI client into ffmpeg, 
+    // which will send it off via RTMP to a server of the client's 
+    // choice.
 
     let videoPipe = new PassThrough();
     let audioPipe = new PassThrough();
@@ -46,16 +58,12 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
             let proc = ffmpeg()
                 .addInput(new NamedPipeInputStream(videoPipe).url)
                 .addInputOptions([
-                    '-f', 'rawvideo',
-                    '-pixel_format', 'yuv420p',
-                    '-video_size', `${outputSizeID}`,
-                    '-r', '30'
+                    '-f', 'rawvideo', '-pixel_format', 'yuv420p',
+                    '-video_size', `${outputSizeID}`, '-r', '30'
                 ])
                 .addInput(new NamedPipeInputStream(audioPipe).url)
                 .addInputOptions([
-                    '-f s16le',
-                    '-ar 48k',
-                    '-ac 1',
+                    '-f s16le', '-ar 48k', '-ac 1',
                 ])
                 .on('stderr', function(line : string) {
                     if (!line.startsWith('frame='))
