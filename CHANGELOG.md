@@ -1,3 +1,7 @@
+# 0.0.6
+
+- Fix: Expose `RemoteStream` properly without deep imports
+
 # 0.0.5
 
 **Reference Implementation**
