@@ -99,6 +99,11 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
             }
 
             console.log(`[WDI/example-server] ffmpeg was started`);
+
+            identifiedStream.ended.subscribe(() => {
+                console.log(`[WDI/example-server] Stream ${stream.id} has ended, stopping ffmpeg...`);
+                proc.kill('SIGTERM');
+            });
         });
     };
 
