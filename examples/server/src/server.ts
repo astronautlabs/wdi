@@ -117,6 +117,7 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
     let droppedFrames = 0;
 
     let audioSecond = 0;
+    let audioCallsPerSecondCounter = 0;
     let audioCallsPerSecond = 0;
     let outputFrameI420 : Frame = { 
         width: outputSize.width, 
@@ -226,7 +227,7 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
 
         // stats
 
-        audioCallsPerSecond += 1;
+        audioCallsPerSecondCounter += 1;
         audioBufferSize = buffer.byteLength / 2;
         audioSampleRateCounter = audioSampleRateCounter + audioBufferSize;
         audioSamplesProcessed += audioBufferSize;
@@ -236,9 +237,10 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
         if (audioSecond !== second) {
             audioSecond = second;
             audioSampleRate = audioSampleRateCounter;
-            audioBufferMs = Math.floor(audioSampleRate / audioBufferSize * 1000);
+            audioBufferMs = Math.floor(audioBufferSize / audioSampleRate * 1000);
             audioSampleRateCounter = 0;
-            audioCallsPerSecond = 0;
+            audioCallsPerSecond = audioCallsPerSecondCounter;
+            audioCallsPerSecondCounter = 0;
         }
     });
 });
