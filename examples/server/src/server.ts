@@ -38,6 +38,18 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
     console.log(`[WDI/example-server] Identity:`);
     console.dir(identifiedStream.identity);
 
+    identifiedStream.ended.subscribe(() => {
+        console.log(`[WDI/example-server] Stream ${stream.id} has ended`);
+    });
+
+    stream.addEventListener('removetrack', () => {
+        console.log(`[WDI/example-server] Track removed`);
+    });
+
+    stream.getTracks().forEach(track => track.addEventListener('ended', ev => {
+        console.log(`[WDI/example-server] Track ended`);
+    }));
+
     // This example is a simple WDI->RTMP gateway. 
     // We'll pipe incoming audio/video from the WDI client into ffmpeg, 
     // which will send it off via RTMP to a server of the client's 
