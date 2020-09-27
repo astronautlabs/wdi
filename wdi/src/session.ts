@@ -124,8 +124,18 @@ export class WDISession {
         };
 
         this.connection.onconnectionstatechange = ev => {
+            if (this.connectionState === this.connection.connectionState)
+                return;
+
             this.connectionState = this.connection.connectionState;
             console.log(`[RTC] Connection state change: ${this.connectionState}`);
+            console.dir(ev);
+
+            if (this.connectionState === 'failed') {
+                console.log(`[WDI] RTC Connection entered failed state.`);
+
+                this.onClose();
+            }
         };
 
         this.connection.ondatachannel = event => {
