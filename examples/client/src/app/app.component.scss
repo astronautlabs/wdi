@@ -7,3 +7,34 @@ input[type=text] {
     width: 25em;
     max-width: 100%;
 }
+
+div.property {
+    display: flex;
+    align-items: flex-start;
+    label {
+        min-width: 8em;
+    }
+}
+
+select.device-selector {
+    width: 20em;
+}
+
+.error {
+    background: pink;
+    color: black;
+    border-radius: 5px;
+    border: 1px solid maroon;
+    padding: 1em;
+}
+
+.container {
+    width: 960px;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.debug {
+    font-size: 12px;
+    font-family: monospace;
+}
