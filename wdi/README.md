@@ -65,8 +65,8 @@ WDI servers can also forward streams to the client. You can listen for incoming
 streams:
 
 ```typescript
-client.remoteStreamAdded.subscribe(identifiedStream => {
-  let stream : MediaStream = identifiedStream.stream;
+client.remoteStreamAdded.subscribe(remoteStream => {
+  let stream : MediaStream = remoteStream.stream;
   // do something with the stream
 });
 ```
@@ -82,7 +82,7 @@ You can receive acquired streams by listening to `remoteStreamAdded`, or by awai
 the promise returned by `acquireStream`
 
 ```typescript
-let identifiedStream = await client.acquireStream(identityMetadata);
+let remoteStream = await client.acquireStream(identityMetadata);
 ```
 
 Conceptually, `acquireStream` just sends a simple message to the server. It is 
@@ -118,9 +118,9 @@ import { WebSocket } from 'ws';
 // to incoming remote streams. 
 
 const wdiServer = new WDIServer();
-wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
-  let stream : MediaStream = identifiedStream.stream;
-  // do something with the stream (perhaps guided by identifiedStream.identity)
+wdiServer.remoteStreamAdded.subscribe(async remoteStream => {
+  let stream : MediaStream = remoteStream.stream;
+  // do something with the stream (perhaps guided by remoteStream.identity)
 });
 
 // Start a WebSocket server and pass clients to the WDI server
@@ -130,7 +130,7 @@ new WebSocket.Server({ port: 3000 })
 
 ```
 For metadata sent alongside the stream from the client,
-see `identifiedStream.identity`. 
+see `remoteStream.identity`. 
 
 The types of things you can do with the MediaStream depends on the WebRTC 
 implementation you have selected. The `wrtc` package offers a set of classes
