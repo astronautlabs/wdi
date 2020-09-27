@@ -352,6 +352,7 @@ export class WDISession {
         });
 
         channel.addEventListener('open', ev => {
+            console.log(`[WDI/Data] Established`);
             channel.send(JSON.stringify({ message: `hello from ${this.id}` }));
         });
     }
