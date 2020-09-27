@@ -1,3 +1,5 @@
+import { Observable, Subject } from "rxjs";
+import { WDISession } from "./session";
 
 export interface StreamIdentity extends Record<string,any> {
     url? : string;
@@ -7,11 +9,6 @@ export interface StreamIdentity extends Record<string,any> {
 export interface AddedStream {
     stream : MediaStream;
     identity : StreamIdentity;
-}
-
-export interface IdentifiedStream {
-    identity : StreamIdentity;
-    stream : MediaStream;
 }
 
 export interface PendingRequest {

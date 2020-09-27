@@ -3,10 +3,11 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { 
     WDIMessage, PendingRequest, WDIRequest, RTCEnvelope, WDIRTCMessage, 
     AddedStream, StreamIdentity, WDIStreamIdentityMessage, 
-    WDIAcquireStreamRequest, WDIResponse, IdentifiedStream, 
+    WDIAcquireStreamRequest, WDIResponse,
     StreamResolver, RequestHandler 
 } from './interface';
 import { timeout } from './util';
+import { RemoteStream } from './remote-stream';
 
 const MAX_MESSAGE_LENGTH = 1024 * 512;
 
@@ -38,17 +39,17 @@ export class WDISession {
     protected channel: RTCDataChannel;
 
     private _socket : WebSocket;
-    private _remoteStreamAdded = new Subject<IdentifiedStream>();
-    private _remoteStreamsChanged = new Subject<IdentifiedStream[]>();
-    private _remoteStreams = new Set<IdentifiedStream>();
+    private _remoteStreamAdded = new Subject<RemoteStream>();
+    private _remoteStreamsChanged = new Subject<RemoteStream[]>();
+    private _remoteStreams = new Set<RemoteStream>();
     private _outstandingRequests = new Map<string, PendingRequest>();
     private _streamIdentities = new Map<string, StreamIdentity>();
 
     public streamResolvers : StreamResolver[] = [];
 
     get socket() { return this._socket; }
-    get remoteStreamAdded(): Observable<IdentifiedStream> { return this._remoteStreamAdded; }
-    get remoteStreamsChanged(): Observable<IdentifiedStream[]> { return this._remoteStreamsChanged; }
+    get remoteStreamAdded(): Observable<RemoteStream> { return this._remoteStreamAdded; }
+    get remoteStreamsChanged(): Observable<RemoteStream[]> { return this._remoteStreamsChanged; }
     get remoteStreams() { return this._remoteStreams; }
 
     private async onAcquireStream(request : WDIAcquireStreamRequest) {
@@ -163,8 +164,9 @@ export class WDISession {
 
             ev.streams.forEach(stream => {
                 let identity = this._streamIdentities.get(stream.id);
-                let identifiedStream : IdentifiedStream = { identity, stream };
+                let identifiedStream = new RemoteStream(this, stream, identity);
 
+                identifiedStream._notifyEnded()
                 if (!Array.from(this._remoteStreams.values()).some(x => x.stream.id === stream.id)) {
                     console.log(`[WDI] Setting up incoming remote stream ${stream.id}, ${stream.getAudioTracks().length} audio tracks, ${stream.getVideoTracks().length} video tracks`);
                     this._remoteStreams.add(identifiedStream);
@@ -176,6 +178,30 @@ export class WDISession {
             if (added > 0)
                 this._remoteStreamsChanged.next(Array.from(this._remoteStreams));
         };
+    }
+
+    private _isClosed = false;
+    private onClose() {
+        if (this._isClosed)
+            return;
+        this._isClosed = true;
+        
+        console.log(`[WDI] Connection is ending.`);
+        console.log(`[WDI] Ending ${this.remoteStreams.size} remote streams...`);
+        this.remoteStreams.forEach(stream => stream._notifyEnded());
+        this.connection.close();
+        this.socket.close();
+        this._closed.next();
+    }
+
+    get isClosed() {
+        return this._isClosed;
+    }
+
+    _closed = new Subject<void>();
+
+    get closed(): Observable<void> {
+        return this._closed;
     }
 
     sendMessage(message: WDIMessage) {
@@ -332,6 +358,10 @@ export class WDISession {
     public async setSocket(socket : WebSocket) {
         this._socket = socket;
         this._socket.addEventListener('message', ev => this.onMessage(ev));
+        this._socket.addEventListener('close', ev => {
+            console.log(`[WDI] Socket disconnected.`);
+            this.onClose();
+        });
         await Promise.all(Array.from(this.streams).map(stream => this.addStreamToConnection(stream)));
     }
 

@@ -1,6 +1,7 @@
-import { StreamResolver, StreamIdentity, IdentifiedStream } from './interface';
+import { StreamResolver, StreamIdentity } from './interface';
 import { Observable, Subject } from 'rxjs';
 import { WDISession } from './session';
+import { RemoteStream } from './remote-stream';
 
 /**
  * Class implementing a multiplexed WDI server logic. To use, create a new WebSocket server
@@ -13,11 +14,11 @@ export class WDIServer {
     sessionsById = new Map<string, WDISession>();
     streamResolvers : StreamResolver[] = [];
 
-    private _remoteStreamAdded = new Subject<IdentifiedStream>();
-    private _remoteStreamsChanged = new Subject<IdentifiedStream[]>();
-    private _remoteStreams = new Set<IdentifiedStream>();
-    get remoteStreamAdded(): Observable<IdentifiedStream> { return this._remoteStreamAdded; }
-    get remoteStreamsChanged(): Observable<IdentifiedStream[]> { return this._remoteStreamsChanged; }
+    private _remoteStreamAdded = new Subject<RemoteStream>();
+    private _remoteStreamsChanged = new Subject<RemoteStream[]>();
+    private _remoteStreams = new Set<RemoteStream>();
+    get remoteStreamAdded(): Observable<RemoteStream> { return this._remoteStreamAdded; }
+    get remoteStreamsChanged(): Observable<RemoteStream[]> { return this._remoteStreamsChanged; }
     get remoteStreams() { return this._remoteStreams; }
     
     getSession(id: string) {
