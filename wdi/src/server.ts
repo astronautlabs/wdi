@@ -33,7 +33,7 @@ export class WDIServer {
         this.streamResolvers.push(resolver);
     }
 
-    provideStream(identity : StreamIdentity) {
+    provideStream(identity : StreamIdentity, session : WDISession) {
         for (let resolver of this.streamResolvers) {
             let stream = resolver(identity);
             if (stream)
@@ -47,7 +47,7 @@ export class WDIServer {
         let session = new WDISession();
         await session.setSocket(socket);
 
-        session.addStreamResolver(async identity => await this.provideStream(identity));            
+        session.addStreamResolver(async identity => await this.provideStream(identity, session));
         session.socket.addEventListener('close', () => this.onDisconnect(session));
         session.socket.addEventListener('error', () => console.error(`[WDI/WS] Connection closed due to error`));
 
