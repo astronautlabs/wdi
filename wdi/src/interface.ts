@@ -6,9 +6,15 @@ export interface StreamIdentity extends Record<string,any> {
     acquisitionId? : string;
 }
 
+export interface AddedTrack {
+    track : MediaStreamTrack;
+    sender : RTCRtpSender;
+}
+
 export interface AddedStream {
     stream : MediaStream;
     identity : StreamIdentity;
+    tracks : AddedTrack[];
 }
 
 export interface PendingRequest {
@@ -40,6 +46,11 @@ export interface WDIAcquireStreamRequest extends WDIRequest {
 
 export interface WDIAcquireStreamResult {
     streamId : string;
+}
+
+export interface WDIStreamRemovedMessage {
+    type: 'streamRemoved';
+    streamId: string;
 }
 
 export interface WDIStreamIdentityMessage {

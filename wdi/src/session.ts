@@ -3,7 +3,7 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { 
     WDIMessage, PendingRequest, WDIRequest, RTCEnvelope, WDIRTCMessage, 
     AddedStream, StreamIdentity, WDIStreamIdentityMessage, 
-    WDIAcquireStreamRequest, WDIResponse,
+    WDIStreamRemovedMessage, WDIAcquireStreamRequest, WDIResponse,
     StreamResolver, RequestHandler 
 } from './interface';
 import { timeout } from './util';
@@ -139,7 +139,6 @@ export class WDISession {
         };
 
         this.connection.ondatachannel = event => {
-            console.log(`RTC: ondatachannel`);
             this.channel = event.channel;
             this.setupChannel();
         };
@@ -295,29 +294,54 @@ export class WDISession {
 
     private streams : AddedStream[] = [];
 
+    async removeStream(stream : MediaStream) {
+        let index = this.streams.findIndex(x => x.stream === stream);
+        if (index < 0)
+            return false;
+        
+        let addedStream = this.streams[index];
+        this.streams.splice(index, 1);
+        this.removeStreamFromConnection(addedStream);
+
+        return true;
+    }
+
     async addStream(stream : MediaStream, identity : string | StreamIdentity) {
         console.log(`[WDI] Adding outgoing stream ${stream.id}`);
         let addedStream : AddedStream = {
             identity: typeof identity === 'string' ? { url: identity } : identity,
-            stream
+            stream,
+            tracks: []
         };
 
         this.streams.push(addedStream);
         await this.addStreamToConnection(addedStream);
     }
     
+    private async removeStreamFromConnection(addedStream : AddedStream) {
+        addedStream.tracks.forEach(track => this.connection.removeTrack(track.sender));
+        addedStream.tracks = [];
+
+        this.announceStreamRemoval(addedStream);
+    }
+
     private async addStreamToConnection(addedStream : AddedStream) {
         if (!this.socket)
             return;
 
         console.log(`[WDI] Adding stream to RTC connection...`);
         for (let track of addedStream.stream.getTracks()) {
+            let addedTrack = addedStream.tracks.find(x => x.track === track);
+            if (addedTrack)
+                continue;
+
             let sender = this.connection.addTrack(track, addedStream.stream);
             let params = sender.getParameters();
 
             params.degradationPreference = 'maintain-resolution';
             params.priority = 'high';
             sender.setParameters(params);
+            addedStream.tracks.push({ track, sender });
         }
 
         await this.announceStream(addedStream);
@@ -329,6 +353,14 @@ export class WDISession {
         
         console.log(`[WDI] Announcing stream to peer: ${addedStream.stream.id}`);
         await this.sendRequest(<WDIStreamIdentityMessage>{ type: 'identifyStream', streamId: addedStream.stream.id, identity: addedStream.identity });
+    }
+
+    private async announceStreamRemoval(addedStream : AddedStream) {
+        if (!this._socket)
+            return;
+        
+        console.log(`[WDI] Announcing stream removal to peer: ${addedStream.stream.id}`);
+        await this.sendRequest(<WDIStreamRemovedMessage>{ type: 'streamRemoved', streamId: addedStream.stream.id });
     }
 
     private setupChannel() {
