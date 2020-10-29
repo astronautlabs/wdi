@@ -9,7 +9,12 @@
     "prepublishOnly": "npm test",
     "test": "npm run build"
   },
-  "keywords": ["webrtc", "streaming", "media", "websockets"],
+  "keywords": [
+    "webrtc",
+    "streaming",
+    "media",
+    "websockets"
+  ],
   "author": {
     "name": "Astronaut Labs",
     "url": "https://astronautlabs.com/"
