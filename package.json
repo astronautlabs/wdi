@@ -13,7 +13,10 @@
     "type": "git",
     "url": "git+https://github.com/astronautlabs/wdi.git"
   },
-  "author": "",
+  "author": {
+    "name": "Astronaut Labs, LLC",
+    "url": "https://astronautlabs.com/"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/astronautlabs/wdi/issues"
