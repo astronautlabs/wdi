@@ -74,3 +74,7 @@ You will need to take this into account when you are directly handling video
 frames. The included server example handles this by upscaling all frames to a 
 particular target resolution, which is the obvious strategy, but may not be 
 the ideal one depending on your use case.
+
+# Related
+
+- [WISH](https://datatracker.ietf.org/wg/wish/about/)
