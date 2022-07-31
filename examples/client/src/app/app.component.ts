@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { WDIClient } from '@astronautlabs/wdi';
+import { WDIClient, StreamIdentity } from '@astronautlabs/wdi';
 
 @Component({
   selector: 'app-root',
@@ -17,24 +17,33 @@ export class AppComponent {
 
   stream : MediaStream;
   screenStream : MediaStream;
-  serverUrl : string = 'ws://localhost:3000';
-  rtmpUrl : string;
+  serverUrl : string = 'ws://localhost:3000/wdi';
+  rtmpUrl : string = `rtmp://rtmp.astronautlabs.com/wditest1`; // NO-COMMIT
 
   hasPermission = false;
   mediaType : string = 'webcam';
   audioInputId : string;
   videoInputId : string;
   mediaUrl = 'https://media.w3.org/2010/05/sintel/trailer.mp4';
-
+  mode : string = null;
+  receiveIdentity = `https://altestvideos.sfo2.digitaloceanspaces.com/Sync-Footage-V1-H264.mp4`;
   get uiState() {
-    if (!this.hasPermission)
-      return 'needsPermission';
-    else if (!this.stream)
-      return 'deviceSelect';
-    else if (!this.client)
-      return 'sessionSettings';
-
-    return 'sending';
+    if (!this.mode)
+      return 'chooseMode';
+    
+    if (this.mode === 'send') {
+      if (!this.hasPermission)
+        return 'needsPermission';
+      else if (!this.stream)
+        return 'deviceSelect';
+      
+      return 'sending';
+    } else if (this.mode === 'receive') {
+      if (this.client)
+        return 'receiving';
+      else
+        return 'setupReceive';
+    }
   }
 
   async acquirePermission() {
@@ -51,8 +60,8 @@ export class AppComponent {
   async acquireCamera() {
 
     if (this.mediaType === 'webcam') {
-    try {
-      console.log(`[WDI/example-client] Opening camera`);
+      try {
+        console.log(`[WDI/example-client] Opening camera`);
 
         this.stream = await navigator.mediaDevices.getUserMedia({ 
           audio: {
@@ -63,14 +72,14 @@ export class AppComponent {
             latency: 0
           }, 
           video: { 
-        width: 1280, 
+            width: 1280, 
             height: 720,
             deviceId: this.videoInputId
           }
         });
-      console.log(`[WDI/example-client] Acquired stream with ${this.stream.getTracks().length}`);
-    } catch (e) {
-      alert(`An error occurred while opening your camera: ${e.message}`);
+        console.log(`[WDI/example-client] Acquired stream with ${this.stream.getTracks().length}`);
+      } catch (e) {
+        alert(`An error occurred while opening your camera: ${e.message}`);
         return;
       }
     } else if (this.mediaType === 'html5') {
@@ -103,15 +112,34 @@ export class AppComponent {
 
   errorMessage : string;
 
+  async startReceiving() {
+    this.client = new WDIClient(this.serverUrl);
+    await this.client.connect();
+
+    console.log(`Acquiring stream...`);
+    let identity : StreamIdentity;
+    
+    if (this.receiveIdentity.startsWith('{'))
+      identity = JSON.parse(this.receiveIdentity);
+    else
+      identity = { url: this.receiveIdentity };
+
+    let stream = await this.client.acquireStream(identity);
+    alert('Acquired stream!');
+    this.stream = stream;
+  }
+
   async startSending() {
+    await this.acquireCamera();
     this.client = new WDIClient(this.serverUrl);
 
     this.client.closed.subscribe(() => {
       this.errorMessage = 'Disconnected from WDI service';
-      this.client = null;
+      this.stream = null;
     })
 
     await this.client.addStream(this.stream, {
+      name: 'foobar',
       destination: this.rtmpUrl
     });
 

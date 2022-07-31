@@ -3,9 +3,17 @@ video {
     max-width: 100%;
 }
 
-input[type=text] {
+input[type=text], textarea, select {
     width: 25em;
     max-width: 100%;
+}
+
+textarea {
+    height: 10em;
+}
+
+textarea.code {
+    font-family: monospace;
 }
 
 div.property {
@@ -14,10 +22,6 @@ div.property {
     label {
         min-width: 8em;
     }
-}
-
-select.device-selector {
-    width: 20em;
 }
 
 .error {

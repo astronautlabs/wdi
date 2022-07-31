@@ -1,6 +1,61 @@
 <div class="container">
-  <h1>WDI Client Example</h1>
+  <h1>
+    <ng-container *ngIf="!mode">
+      WDI Client Example
+    </ng-container>
+    <ng-container *ngIf="mode">
+      <a href="javascript:;" (click)="mode = null">
+        WDI Client Example
+      </a>
+      &raquo;
+      <ng-container *ngIf="mode === 'send'">
+        Send Media
+      </ng-container>
+      <ng-container *ngIf="mode === 'receive'">
+        Receive Media
+      </ng-container>
+    </ng-container>
+  </h1>
 
+  <ng-container *ngIf="uiState === 'setupReceive'">
+    <p>Enter a WDI server and a stream identity to request</p>
+    
+    <div class="property">
+      <label>WDI Server:</label>
+      <input type="text" [(ngModel)]="serverUrl" />
+    </div>
+    <div class="property">
+      <label>Identity:</label>
+      <textarea class="code" [(ngModel)]="receiveIdentity"></textarea>
+    </div>
+    <button (click)="startReceiving()">Start Receiving</button>
+
+  </ng-container>
+  <ng-container *ngIf="uiState === 'receiving'">
+    <ng-container *ngIf="!stream">
+      Acquiring stream...
+    </ng-container>
+    <ng-container *ngIf="stream">
+      <video autoplay muted [srcObject]="stream"></video>
+    </ng-container>
+    
+    <div>
+      Requested Identity:
+      <pre>{{receiveIdentity | json}}</pre>
+    </div>
+
+  </ng-container>
+  <ng-container *ngIf="uiState === 'chooseMode'">
+    <p>Choose your desired mode</p>
+
+    <div>
+      <a (click)="mode = 'send'" href="javascript:;">Send Media</a>
+    </div>
+    <div>
+      <a (click)="mode = 'receive'" href="javascript:;">Receive Media</a>
+    </div>
+
+  </ng-container>
   <ng-container *ngIf="uiState === 'needsPermission'">  
     <p>This app will send your camera/microphone to the WDI server of choice.
       Looks like you haven't granted permission to use your webcam yet.
@@ -10,7 +65,9 @@
 
     <button (click)="acquirePermission()">Start camera</button>
   </ng-container>
-  <ng-container *ngIf="uiState === 'deviceSelect'"> 
+  <ng-container *ngIf="uiState === 'deviceSelect'">     
+    <div *ngIf="errorMessage" class="error">{{errorMessage}}</div>
+
     <p>Choose the media source you wish to send below.</p>
 
     <div class="property">
@@ -57,19 +114,6 @@
         </select>
       </div>
     </ng-container>
-
-    <p>Once you have selected your media source above, click below to get started.</p>
-    <button (click)="acquireCamera()">Continue</button>
-  </ng-container>
-
-  <ng-container *ngIf="uiState === 'sessionSettings'">
-    <video autoplay muted [srcObject]="stream"></video>
-
-    <div *ngIf="errorMessage" class="error">{{errorMessage}}</div>
-
-    <p>Enter the URL of the WDI server and the RTMP destination you wish to 
-      instruct the WDI server to forward the streamed media to.</p>
-
     <div class="property">
       <label>WDI Server:</label>
       <input type="text" [(ngModel)]="serverUrl" />
@@ -79,8 +123,9 @@
       <label>Destination:</label>
       <input type="text" [(ngModel)]="rtmpUrl" placeholder="rtmp://server/streamname/streamkey" />
     </div>
-    <br/>
-    <button (click)="startSending()">Start sending</button>
+
+    <p>Once you have selected your media source above, click below to get started.</p>
+    <button (click)="startSending()">Connect</button>
   </ng-container>
 
   <ng-container *ngIf="uiState === 'sending'">
