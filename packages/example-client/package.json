@@ -19,7 +19,9 @@
     "@angular/platform-browser": "^14.2.0",
     "@angular/platform-browser-dynamic": "^14.2.0",
     "@angular/router": "^14.2.0",
-    "@astronautlabs/wdi": "~0.0.1",
+    "@astronautlabs/wdi": "~0.0.7",
+    "@astronautlabs/webrpc": "^0.1.0",
+    "reflect-metadata": "^0.1.13",
     "rxjs": "~6.5.4",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"

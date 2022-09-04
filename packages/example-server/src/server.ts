@@ -24,7 +24,7 @@ export interface Frame {
 
 @WebService()
 class WDIServer {
-    @Get()
+    @Get('/wdi')
     async endpoint() {
         let socket = await WebServer.startSocket();
         let session = new RPCSession(new SocketChannel(socket));

@@ -51,7 +51,7 @@ export class WDIPeer {
     async start(otherPeer: WDIPeer) {
         await Promise.all([
             otherPeer.connect(markProxied(<WDIPeer>this)),
-            this.connect(this._remotePeer)
+            this.connect(markProxied(otherPeer))
         ]);
     }
 
@@ -71,6 +71,8 @@ export class WDIPeer {
     private _offers$ = this._offers.asObservable();
     private _answers = new Subject<RTCSessionDescriptionInit>();
     private _answers$ = this._answers.asObservable();
+    private _closed = new Subject<void>();
+    private _closed$ = this._closed.asObservable();
     private _isClosed = false;
     private _streams : AddedStream[] = [];
     private _streamRemoved = new Subject<string>();
@@ -80,14 +82,15 @@ export class WDIPeer {
     @Event() get offers() { return this._offers$; }
     @Event() get answers() { return this._answers$; }
     @Event() get streamRemoved() { return this._streamRemoved$; }
-
+    
     get connectionState() { return this._connectionState; }
     get rtcConnection() { return this._rtcConnection; }
     get remoteStreamAdded() { return this._remoteStreamAdded$; }
     get remoteStreamsChanged() { return this._remoteStreamsChanged$; }
     get remoteStreams() { return this._remoteStreams; }
     get isClosed() { return this._isClosed; }
-
+    get closed() { return this._closed$; }
+    
     @Method()
     async connect(peer: Proxied<WDIPeer>) {
         if (this._remotePeer)
@@ -104,6 +107,11 @@ export class WDIPeer {
         this._remotePeer.answers.subscribe(async answer => {
             await this.rtcConnection.setRemoteDescription(answer);
         });
+        
+        for (let addedStream of this._streams) {
+            console.log(`[WDI] Identifying previously added streams for peer`);
+            await this._remotePeer.identifyStream(addedStream.stream.id, addedStream.identity);
+        }
     }
 
     @Method()
@@ -253,8 +261,10 @@ export class WDIPeer {
             addedStream.tracks.push({ track, sender });
         }
 
-        console.log(`[WDI] Announcing stream to peer: ${addedStream.stream.id}`);
-        await this._remotePeer.identifyStream(addedStream.stream.id, addedStream.identity);
+        if (this._remotePeer) {
+            console.log(`[WDI] Announcing stream to peer: ${addedStream.stream.id}`);
+            await this._remotePeer.identifyStream(addedStream.stream.id, addedStream.identity);
+        }
     }
 
     async removeStream(stream : MediaStream) {
@@ -283,7 +293,7 @@ export class WDIPeer {
      * a result of this call.
      */
     @Method()
-    async acquireStream(identity : StreamIdentity) {
+    async acquireStream(identity : StreamIdentity): Promise<MediaStream> {
         throw new Error(`No provider for stream with identity '${JSON.stringify(identity)}'`);
     }
 }

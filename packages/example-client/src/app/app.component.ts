@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { WDIClient, StreamIdentity } from '@astronautlabs/wdi';
+import { StreamIdentity, WDIPeer } from '@astronautlabs/wdi';
+import { markProxied } from '@astronautlabs/webrpc';
 
 @Component({
   selector: 'app-root',
@@ -7,8 +8,6 @@ import { WDIClient, StreamIdentity } from '@astronautlabs/wdi';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  client : WDIClient;
-
   async ngOnInit() {
     let devices = await navigator.mediaDevices.enumerateDevices();
     this.devices = devices;
@@ -27,6 +26,8 @@ export class AppComponent {
   mediaUrl = 'https://media.w3.org/2010/05/sintel/trailer.mp4';
   mode : string = null;
   receiveIdentity = `https://altestvideos.sfo2.digitaloceanspaces.com/Sync-Footage-V1-H264.mp4`;
+  remotePeer: WDIPeer;
+
   get uiState() {
     if (!this.mode)
       return 'chooseMode';
@@ -39,7 +40,7 @@ export class AppComponent {
       
       return 'sending';
     } else if (this.mode === 'receive') {
-      if (this.client)
+      if (this.remotePeer)
         return 'receiving';
       else
         return 'setupReceive';
@@ -113,9 +114,9 @@ export class AppComponent {
   errorMessage : string;
 
   async startReceiving() {
-    this.client = new WDIClient(this.serverUrl);
-    await this.client.connect();
-
+    let localPeer = new WDIPeer();
+    let remotePeer = await WDIPeer.connect(this.serverUrl);
+    
     console.log(`Acquiring stream...`);
     let identity : StreamIdentity;
     
@@ -124,28 +125,30 @@ export class AppComponent {
     else
       identity = { url: this.receiveIdentity };
 
-    let stream = await this.client.acquireStream(identity);
+    let stream = await this.remotePeer.acquireStream(identity);
     alert('Acquired stream!');
     this.stream = stream;
   }
 
   async startSending() {
     await this.acquireCamera();
-    this.client = new WDIClient(this.serverUrl);
+    let remotePeer = await WDIPeer.connect(this.serverUrl);
+    let localPeer = new WDIPeer();
 
-    this.client.closed.subscribe(() => {
+    localPeer.closed.subscribe(() => {
       this.errorMessage = 'Disconnected from WDI service';
       this.stream = null;
     })
 
-    await this.client.addStream(this.stream, {
+    await localPeer.addStream(this.stream, {
       name: 'foobar',
       destination: this.rtmpUrl
     });
 
     this.connected = false;
     console.log(`[WDI/example-client] Connecting to WDI server ${this.serverUrl}`);
-    await this.client.connect();
+
+    await localPeer.start(<any>remotePeer);
     console.log(`[WDI/example-client] Connected successfully.`);
     this.connected = true;
   }
