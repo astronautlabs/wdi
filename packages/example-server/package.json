@@ -11,7 +11,12 @@
   "author": "Astronaut Labs",
   "license": "MIT",
   "dependencies": {
+    "@alterior/express": "^3.0.1",
+    "@alterior/platform-nodejs": "^3.0.2",
+    "@alterior/runtime": "^3.0.1",
+    "@alterior/web-server": "^3.0.1",
     "@astronautlabs/wdi": "0.0.7",
+    "@astronautlabs/webrpc": "^0.1.0",
     "@byslin/fluent-ffmpeg-multistream": "^1.0.0",
     "canvas": "^2.6.1",
     "fluent-ffmpeg": "^2.1.2",
@@ -22,6 +27,8 @@
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.15",
-    "@types/ws": "^7.2.6"
+    "@types/node": "^18.7.14",
+    "@types/ws": "^7.2.6",
+    "typescript": "^4.8.2"
   }
 }

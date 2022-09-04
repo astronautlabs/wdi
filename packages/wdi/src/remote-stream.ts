@@ -1,6 +1,5 @@
 import { Observable, Subject } from "rxjs";
 import { StreamIdentity } from "./interface";
-import { WDISession } from "./session";
 
 export class RemoteStream {
     constructor(
