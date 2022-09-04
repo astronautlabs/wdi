@@ -13,7 +13,3 @@ export interface AddedStream {
     identity : StreamIdentity;
     tracks : AddedTrack[];
 }
-
-export interface StreamResolver {
-    (identity : StreamIdentity) : Promise<MediaStream>; 
-}

@@ -1,6 +1,5 @@
-import { v4 as uuid } from 'uuid';
 import { Subject } from 'rxjs';
-import { AddedStream, StreamIdentity, StreamResolver } from './interface';
+import { AddedStream, StreamIdentity } from './interface';
 import { markProxied, timeout } from './util';
 import { RemoteStream } from './remote-stream';
 import { Event, Method, Proxied, Remotable, RPCSession, Service } from '@astronautlabs/webrpc';
