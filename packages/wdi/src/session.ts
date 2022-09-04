@@ -3,7 +3,7 @@ import { Subject } from 'rxjs';
 import { AddedStream, StreamIdentity, StreamResolver } from './interface';
 import { markProxied, timeout } from './util';
 import { RemoteStream } from './remote-stream';
-import { Event, Method, Proxied, Remotable, Service } from '@astronautlabs/webrpc';
+import { Event, Method, Proxied, Remotable, RPCSession, Service } from '@astronautlabs/webrpc';
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -19,7 +19,9 @@ const DEFAULT_RTC_CONFIG = <Partial<RTCConfiguration>>{
 }
 
 /**
- * Business logic for a WDI session participant. Base class for WDIClient, WDIServerSession.
+ * The primary API for WDI. Typically a client and server both create WDIPeer objects and WebRPC is used to 
+ * connect them together. WDI can operate over any signaling mechanism that WebRPC can operate over, though the 
+ * simplest mechanism is to use WebSockets. The connect() method provides an easy way to get started.
  */
 @Service('com.astronautlabs.wdi')
 export class WDIPeer {
@@ -33,10 +35,23 @@ export class WDIPeer {
         this._rtcConnection.addEventListener('track', ev => this.onTrack(ev.track, <MediaStream[]>ev.streams));
     }
 
+    /**
+     * Connect to the given WebRPC-capable WebSocket, obtain the remote WDIPeer and return it.
+     * You can then create your own local WDIPeer object and call localPeer.start(remotePeer).
+     * @param url 
+     */
+    static async connect(url: string) {
+        return await (await RPCSession.connect(url)).getRemoteService(WDIPeer);
+    }
+
+    /**
+     * Start a connection between local/remote peers
+     * @param otherPeer 
+     */
     @Method()
-    async start(peer: WDIPeer) {
+    async start(otherPeer: WDIPeer) {
         await Promise.all([
-            peer.connect(markProxied(<WDIPeer>this)),
+            otherPeer.connect(markProxied(<WDIPeer>this)),
             this.connect(this._remotePeer)
         ]);
     }
