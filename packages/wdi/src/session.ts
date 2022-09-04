@@ -117,9 +117,9 @@ export class WDISession {
         });
 
         this.connection.onicecandidateerror = ev => {
-            if (ev.errorCode !== 701) {
-                console.log(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
-                console.error(`[RTC] Received ICE candidate error code=${ev.errorCode}, text=${ev.errorText}`);
+            if (ev['errorCode'] !== 701) {
+                console.log(`[RTC] Received ICE candidate error code=${ev['errorCode']}, text=${ev['errorText']}`);
+                console.error(`[RTC] Received ICE candidate error code=${ev['errorCode']}, text=${ev['errorText']}`);
             }
         };
 
@@ -239,6 +239,8 @@ export class WDISession {
                 return stream;
         }
 
+        console.error(`[Session] Available resolvers:`);
+        console.dir(this.streamResolvers);
         throw new Error(`No provider for stream with identity '${JSON.stringify(identity)}'`);
     }
 
@@ -339,7 +341,7 @@ export class WDISession {
             let params = sender.getParameters();
 
             params.degradationPreference = 'maintain-resolution';
-            params.priority = 'high';
+            params['priority'] = 'high';
             sender.setParameters(params);
             addedStream.tracks.push({ track, sender });
         }
@@ -379,7 +381,7 @@ export class WDISession {
 
         channel.addEventListener('error', ev => {
             console.log(`[WDI/Data] Error:`);
-            console.error(ev.error);
+            console.error(ev['error']);
             console.dir(ev);
         });
 

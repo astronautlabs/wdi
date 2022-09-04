@@ -64,7 +64,7 @@ wdiServer.remoteStreamAdded.subscribe(async identifiedStream => {
     let ready = false;
     
     let initialize = async () => {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             console.log(`[WDI/example-server] Initializing for output resolution ${outputSizeID}`);
 
             let proc = ffmpeg()

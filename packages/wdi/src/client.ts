@@ -45,7 +45,7 @@ export class WDIClient extends WDISession {
     async connect() {
         let socket = new WebSocket(this.url);
         
-        await new Promise((onConnected, onError) => {
+        await new Promise<void>((onConnected, onError) => {
             this._intentToConnect = true;
 
             socket.addEventListener('error', async event => {

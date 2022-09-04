@@ -41,6 +41,8 @@ export class WDIServer {
                 return stream;
         }
 
+        console.error(`[Server] Available resolvers:`);
+        console.dir(this.streamResolvers);
         throw new Error(`No provider for stream with identity '${JSON.stringify(identity)}'`);
     }
 
