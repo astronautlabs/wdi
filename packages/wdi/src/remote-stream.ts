@@ -4,7 +4,6 @@ import { WDISession } from "./session";
 
 export class RemoteStream {
     constructor(
-        readonly session : WDISession,
         readonly stream : MediaStream,
         readonly identity : StreamIdentity
     ) {
