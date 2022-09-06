@@ -26,7 +26,10 @@ const DEFAULT_RTC_CONFIG = <Partial<RTCConfiguration>>{
 export class WDIPeer {
     constructor(configuration?: RTCConfiguration) {
         this._rtcConnection = new RTCPeerConnection({ ...DEFAULT_RTC_CONFIG, ...configuration });
-        this._rtcConnection.addEventListener('icecandidate', ev => this._iceCandidates.next(ev.candidate));
+        this._rtcConnection.addEventListener('icecandidate', ev => {
+            if (ev.candidate)
+                this._iceCandidates.next(ev.candidate);
+        });
         this._rtcConnection.addEventListener('negotiationneeded', ev => this.onNegotiationNeeded());
         this._rtcConnection.addEventListener('icecandidateerror', ev => this.onIceCandidateError(ev['errorCode'], ev['errorText']));
         this._rtcConnection.addEventListener('connectionstatechange', () => this.onConnectionStateChange());
