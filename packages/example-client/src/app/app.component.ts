@@ -27,6 +27,7 @@ export class AppComponent {
   mode : string = null;
   receiveIdentity = `https://altestvideos.sfo2.digitaloceanspaces.com/Sync-Footage-V1-H264.mp4`;
   remotePeer: WDIPeer;
+  identity = `{ "name": "wditest" }`;
 
   get uiState() {
     if (!this.mode)
@@ -140,10 +141,7 @@ export class AppComponent {
       this.stream = null;
     })
 
-    await localPeer.addStream(this.stream, {
-      name: 'foobar',
-      destination: this.rtmpUrl
-    });
+    await localPeer.addStream(this.stream, JSON.parse(this.identity));
 
     this.connected = false;
     console.log(`[WDI/example-client] Connecting to WDI server ${this.serverUrl}`);
