@@ -17,12 +17,31 @@ const DEFAULT_RTC_CONFIG = <Partial<RTCConfiguration>>{
     iceServers: DEFAULT_ICE_SERVERS
 }
 
+@Service('com.astronautlabs.wdi')
+export class WDI {
+    defaultConfiguration: RTCConfiguration = DEFAULT_RTC_CONFIG;
+
+    @Method()
+    async createPeer(): Promise<WDIPeer> {
+        return new WDIPeer(this.defaultConfiguration);
+    }
+
+    /**
+     * Connect to the given WebRPC-capable WebSocket, obtain the remote WDIPeer and return it.
+     * You can then create your own local WDIPeer object and call localPeer.start(remotePeer).
+     * @param url 
+     */
+    static async connect(url: string) {
+        return await (await (await RPCSession.connect(url)).getRemoteService(WDI)).createPeer();
+    }
+}
+
 /**
  * The primary API for WDI. Typically a client and server both create WDIPeer objects and WebRPC is used to 
  * connect them together. WDI can operate over any signaling mechanism that WebRPC can operate over, though the 
  * simplest mechanism is to use WebSockets. The connect() method provides an easy way to get started.
  */
-@Service('com.astronautlabs.wdi')
+@Remotable()
 export class WDIPeer {
     constructor(configuration?: RTCConfiguration) {
         this._rtcConnection = new RTCPeerConnection({ ...DEFAULT_RTC_CONFIG, ...configuration });
@@ -38,23 +57,14 @@ export class WDIPeer {
     }
 
     /**
-     * Connect to the given WebRPC-capable WebSocket, obtain the remote WDIPeer and return it.
-     * You can then create your own local WDIPeer object and call localPeer.start(remotePeer).
-     * @param url 
-     */
-    static async connect(url: string) {
-        return await (await RPCSession.connect(url)).getRemoteService(WDIPeer);
-    }
-
-    /**
      * Start a connection between local/remote peers
      * @param otherPeer 
      */
     @Method()
-    async start(otherPeer: WDIPeer) {
+    async connect(otherPeer: WDIPeer) {
         await Promise.all([
-            otherPeer.connect(markProxied(<WDIPeer>this)),
-            this.connect(markProxied(otherPeer))
+            otherPeer.setRemotePeer(markProxied(<WDIPeer>this)),
+            this.setRemotePeer(markProxied(otherPeer))
         ]);
     }
 
@@ -95,9 +105,9 @@ export class WDIPeer {
     get closed() { return this._closed$; }
     
     @Method()
-    async connect(peer: Proxied<WDIPeer>) {
+    async setRemotePeer(peer: Proxied<WDIPeer>) {
         if (this._remotePeer)
-            throw new Error(`Can only call connect() once [this method is called for you]`);
+            throw new Error(`Can only call setRemotePeer() once [this method is called for you]`);
 
         this._remotePeer = peer;
         this._remotePeer.iceCandidates.subscribe(candidate => this.rtcConnection.addIceCandidate(candidate));
