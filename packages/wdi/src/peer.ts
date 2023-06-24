@@ -2,7 +2,7 @@ import { Subject } from 'rxjs';
 import { AddedStream, StreamIdentity } from './interface';
 import { markProxied, timeout } from './util';
 import { RemoteStream } from './remote-stream';
-import { Event, Method, Proxied, Remotable, RPCSession, Service } from '@astronautlabs/webrpc';
+import { Event, Method, Proxied, Remotable, RPCSession, Service } from '@astronautlabs/conduit';
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -304,6 +304,8 @@ export class WDIPeer {
      * 
      * Implementors should call addStream() and return the new stream if a new stream is created as 
      * a result of this call.
+     * 
+     * TODO: This can't work, right?
      */
     @Method()
     async acquireStream(identity : StreamIdentity): Promise<MediaStream> {

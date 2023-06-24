@@ -9,7 +9,7 @@ import { PassThrough } from 'stream';
 import { NamedPipeInputStream } from './named-pipe-stream';
 import * as libyuv from 'libyuv';
 import { Get, WebServer, WebServerEngine, WebService } from '@alterior/web-server';
-import { RPCSession, SocketChannel } from '@astronautlabs/webrpc';
+import { RPCSession, SocketChannel } from '@astronautlabs/conduit';
 import { Application } from '@alterior/runtime';
 import { ExpressEngine } from '@alterior/express';
 

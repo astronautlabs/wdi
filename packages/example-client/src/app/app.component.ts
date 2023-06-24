@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { StreamIdentity, WDIPeer } from '@astronautlabs/wdi';
-import { markProxied } from '@astronautlabs/webrpc';
+import { markProxied } from '@astronautlabs/conduit';
 
 @Component({
   selector: 'app-root',
