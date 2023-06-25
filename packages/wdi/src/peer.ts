@@ -18,7 +18,7 @@ const DEFAULT_RTC_CONFIG = <Partial<RTCConfiguration>>{
 }
 
 @conduit.Name('com.astronautlabs.wdi')
-export class WDI {
+export class WDI extends conduit.Service {
     defaultConfiguration: RTCConfiguration = DEFAULT_RTC_CONFIG;
 
     @conduit.Method()
