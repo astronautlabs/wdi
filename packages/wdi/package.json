@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@astronautlabs/conduit": "^0.4.7",
-    "rxjs": "^6.6.3",
+    "rxjs": "^7.8.1",
     "uuid": "^8.3.0"
   }
 }

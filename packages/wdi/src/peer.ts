@@ -2,7 +2,7 @@ import { Subject } from 'rxjs';
 import { AddedStream, StreamIdentity } from './interface';
 import { markProxied, timeout } from './util';
 import { RemoteStream } from './remote-stream';
-import { Event, Method, Proxied, Remotable, RPCSession, Service } from '@astronautlabs/conduit';
+import * as conduit from '@astronautlabs/conduit';
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -17,11 +17,11 @@ const DEFAULT_RTC_CONFIG = <Partial<RTCConfiguration>>{
     iceServers: DEFAULT_ICE_SERVERS
 }
 
-@Service('com.astronautlabs.wdi')
+@conduit.Name('com.astronautlabs.wdi')
 export class WDI {
     defaultConfiguration: RTCConfiguration = DEFAULT_RTC_CONFIG;
 
-    @Method()
+    @conduit.Method()
     async createPeer(): Promise<WDIPeer> {
         return new WDIPeer(this.defaultConfiguration);
     }
@@ -32,7 +32,7 @@ export class WDI {
      * @param url 
      */
     static async connect(url: string) {
-        return await (await (await RPCSession.connect(url)).getRemoteService(WDI)).createPeer();
+        return await (await (await conduit.RPCSession.connect(url)).getRemoteService(WDI)).createPeer();
     }
 }
 
@@ -41,7 +41,7 @@ export class WDI {
  * connect them together. WDI can operate over any signaling mechanism that WebRPC can operate over, though the 
  * simplest mechanism is to use WebSockets. The connect() method provides an easy way to get started.
  */
-@Remotable()
+@conduit.Remotable()
 export class WDIPeer {
     constructor(configuration?: RTCConfiguration) {
         this._rtcConnection = new RTCPeerConnection({ ...DEFAULT_RTC_CONFIG, ...configuration });
@@ -60,7 +60,7 @@ export class WDIPeer {
      * Start a connection between local/remote peers
      * @param otherPeer 
      */
-    @Method()
+    @conduit.Method()
     async connect(otherPeer: WDIPeer) {
         await Promise.all([
             otherPeer.setRemotePeer(markProxied(<WDIPeer>this)),
@@ -77,7 +77,7 @@ export class WDIPeer {
     private _rtcConnection: RTCPeerConnection;
     private _connectionState: string;
     private _channel: RTCDataChannel;
-    private _remotePeer: Proxied<WDIPeer>;
+    private _remotePeer: conduit.Proxied<WDIPeer>;
     private _iceCandidates = new Subject<RTCIceCandidate>();
     private _iceCandidates$ = this._iceCandidates.asObservable();
     private _offers = new Subject<RTCSessionDescriptionInit>();
@@ -91,10 +91,10 @@ export class WDIPeer {
     private _streamRemoved = new Subject<string>();
     private _streamRemoved$ = this._streamRemoved.asObservable();
 
-    @Event() get iceCandidates() { return this._iceCandidates$; }
-    @Event() get offers() { return this._offers$; }
-    @Event() get answers() { return this._answers$; }
-    @Event() get streamRemoved() { return this._streamRemoved$; }
+    @conduit.Event() get iceCandidates() { return this._iceCandidates$; }
+    @conduit.Event() get offers() { return this._offers$; }
+    @conduit.Event() get answers() { return this._answers$; }
+    @conduit.Event() get streamRemoved() { return this._streamRemoved$; }
     
     get connectionState() { return this._connectionState; }
     get rtcConnection() { return this._rtcConnection; }
@@ -104,8 +104,8 @@ export class WDIPeer {
     get isClosed() { return this._isClosed; }
     get closed() { return this._closed$; }
     
-    @Method()
-    async setRemotePeer(peer: Proxied<WDIPeer>) {
+    @conduit.Method()
+    async setRemotePeer(peer: conduit.Proxied<WDIPeer>) {
         if (this._remotePeer)
             throw new Error(`Can only call setRemotePeer() once [this method is called for you]`);
 
@@ -127,7 +127,7 @@ export class WDIPeer {
         }
     }
 
-    @Method()
+    @conduit.Method()
     async identifyStream(streamId: string, identity: StreamIdentity) {
         console.log(`[WDI] Remote has announced stream ${streamId} with identity:`);
         console.dir(identity);
@@ -307,7 +307,7 @@ export class WDIPeer {
      * 
      * TODO: This can't work, right?
      */
-    @Method()
+    @conduit.Method()
     async acquireStream(identity : StreamIdentity): Promise<MediaStream> {
         throw new Error(`No provider for stream with identity '${JSON.stringify(identity)}'`);
     }
