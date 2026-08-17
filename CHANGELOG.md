@@ -1,3 +1,7 @@
+# 0.0.14
+
+- Fixes for connection establishment issues
+
 # 0.0.6
 
 - Fix: Expose `RemoteStream` properly without deep imports
