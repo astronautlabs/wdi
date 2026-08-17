@@ -109,7 +109,7 @@ export class WDIPeer {
     get closed() { return this._closed$; }
 
     fireLinkEstablished!: () => void;
-    linkEstablished = new Promise(resolve => this.fireLinkEstablished = resolve);
+    linkEstablished = new Promise<void>(resolve => this.fireLinkEstablished = resolve);
 
     @conduit.Method()
     async setRemotePeer(peer: conduit.Proxied<WDIPeer>) {
