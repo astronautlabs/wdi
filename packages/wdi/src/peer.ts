@@ -1,8 +1,9 @@
+import * as conduit from '@astronautlabs/conduit';
+
 import { Subject } from 'rxjs';
 import { AddedStream, StreamIdentity } from './interface';
 import { markProxied, timeout } from './util';
 import { RemoteStream } from './remote-stream';
-import * as conduit from '@astronautlabs/conduit';
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -29,16 +30,20 @@ export class WDI extends conduit.Service {
     /**
      * Connect to the given WebRPC-capable WebSocket, obtain the remote WDIPeer and return it.
      * You can then create your own local WDIPeer object and call localPeer.start(remotePeer).
-     * @param url 
+     * @param url
      */
     static async connect(url: string) {
-        return await (await (await conduit.RPCSession.connect(url)).getRemoteService(WDI)).createPeer();
+        let wdi = await (await (await conduit.RPCSession.connect(url)).getRemoteService(WDI))
+        if (!wdi)
+            throw new Error(`Could not acquire WDI service (com.astronautlabs.wdi), please ensure this Conduit service is capable of WDI.`);
+
+        return wdi.createPeer();
     }
 }
 
 /**
- * The primary API for WDI. Typically a client and server both create WDIPeer objects and WebRPC is used to 
- * connect them together. WDI can operate over any signaling mechanism that WebRPC can operate over, though the 
+ * The primary API for WDI. Typically a client and server both create WDIPeer objects and Conduit is used to
+ * connect them together. WDI can operate over any signaling mechanism that Conduit can operate over, though the
  * simplest mechanism is to use WebSockets. The connect() method provides an easy way to get started.
  */
 @conduit.Remotable()
@@ -58,14 +63,13 @@ export class WDIPeer {
 
     /**
      * Start a connection between local/remote peers
-     * @param otherPeer 
+     * @param otherPeer
      */
     @conduit.Method()
     async connect(otherPeer: WDIPeer) {
-        await Promise.all([
-            otherPeer.setRemotePeer(markProxied(<WDIPeer>this)),
-            this.setRemotePeer(markProxied(otherPeer))
-        ]);
+        await this.setRemotePeer(markProxied(otherPeer)),
+        await otherPeer.setRemotePeer(markProxied(<WDIPeer>this));
+        this.fireLinkEstablished();
     }
 
     private _remoteStreamAdded = new Subject<RemoteStream>();
@@ -95,7 +99,7 @@ export class WDIPeer {
     @conduit.Event() get offers() { return this._offers$; }
     @conduit.Event() get answers() { return this._answers$; }
     @conduit.Event() get streamRemoved() { return this._streamRemoved$; }
-    
+
     get connectionState() { return this._connectionState; }
     get rtcConnection() { return this._rtcConnection; }
     get remoteStreamAdded() { return this._remoteStreamAdded$; }
@@ -103,24 +107,53 @@ export class WDIPeer {
     get remoteStreams() { return this._remoteStreams; }
     get isClosed() { return this._isClosed; }
     get closed() { return this._closed$; }
-    
+
+    fireLinkEstablished!: () => void;
+    linkEstablished = new Promise(resolve => this.fireLinkEstablished = resolve);
+
     @conduit.Method()
     async setRemotePeer(peer: conduit.Proxied<WDIPeer>) {
         if (this._remotePeer)
             throw new Error(`Can only call setRemotePeer() once [this method is called for you]`);
 
+        let pendingIceCandidates: RTCIceCandidate[] = [];
+
         this._remotePeer = peer;
-        this._remotePeer.iceCandidates.subscribe(candidate => this.rtcConnection.addIceCandidate(candidate));
+        this._remotePeer.iceCandidates.subscribe(async candidate => {
+            try {
+                if (!this.rtcConnection.remoteDescription) {
+                    console.log(`[WDI] Saving ICE candidate as pending (no remote description yet)`);
+                    pendingIceCandidates.push(candidate);
+                } else {
+                    console.log(`[WDI] Applying ICE candidate...`);
+                    await this.rtcConnection.addIceCandidate(candidate)
+                }
+            } catch (e: any) {
+                console.error(`Failed to add ice candidate ${JSON.stringify(candidate)}: ${e.stack || e}`);
+            }
+        });
         this._remotePeer.offers.subscribe(async offer => {
+            console.log(`[WDI] Received offer, applying remote description...`);
             await this.rtcConnection.setRemoteDescription(offer);
             let answer = await this.rtcConnection.createAnswer();
             this.rtcConnection.setLocalDescription(answer);
+            console.log(`[WDI] Sending answer...`);
             this._answers.next(answer);
+
+            if (pendingIceCandidates.length > 0)
+                console.log(`[WDI] Flushing ${pendingIceCandidates.length} pending ICE candidates...`);
+            while (pendingIceCandidates.length > 0)
+                await this.rtcConnection.addIceCandidate(pendingIceCandidates.pop());
         });
         this._remotePeer.answers.subscribe(async answer => {
+            console.log(`[WDI] Received answer, applying remote description.`);
             await this.rtcConnection.setRemoteDescription(answer);
+            if (pendingIceCandidates.length > 0)
+                console.log(`[WDI] Flushing ${pendingIceCandidates.length} pending ICE candidates...`);
+            while (pendingIceCandidates.length > 0)
+                await this.rtcConnection.addIceCandidate(pendingIceCandidates.pop());
         });
-        
+
         for (let addedStream of this._streams) {
             console.log(`[WDI] Identifying previously added streams for peer`);
             await this._remotePeer.identifyStream(addedStream.stream.id, addedStream.identity);
@@ -131,21 +164,31 @@ export class WDIPeer {
     async identifyStream(streamId: string, identity: StreamIdentity) {
         console.log(`[WDI] Remote has announced stream ${streamId} with identity:`);
         console.dir(identity);
-        
+
         this._streamIdentities.set(streamId, identity);
     }
 
     private async onNegotiationNeeded() {
-        console.log(`[RTC] Negotiation needed...`);
-        let sdp = await this.rtcConnection.createOffer();
-        await this.rtcConnection.setLocalDescription(sdp);
-        this._offers.next(sdp);
+        try {
+            console.log(`[WDI] Negotiation needed...`);
+            await this.linkEstablished;
+
+            console.log(`[WDI] Creating offer...`);
+            let sdp = await this.rtcConnection.createOffer();
+            console.log(`[WDI] Setting local description...`);
+            await this.rtcConnection.setLocalDescription(sdp);
+            console.log(`[WDI] Sending offer...`);
+            this._offers.next(sdp);
+        } catch (e: any) {
+            console.error(`Failed to begin negotation: ${e.stack || e}`);
+        }
     }
 
     private onConnectionStateChange() {
         if (this._connectionState === this._rtcConnection.connectionState)
             return;
 
+        console.log(`[WDI] RTC connection state changed: ${this._rtcConnection.connectionState}`);
         this._connectionState = this._rtcConnection.connectionState;
 
         if (this._connectionState === 'failed') {
@@ -156,13 +199,13 @@ export class WDIPeer {
 
     private async onIceCandidateError(errorCode: number, errorText: string) {
         if (errorCode !== 701) {
-            console.log(`[RTC] Received ICE candidate error code=${errorCode}, text=${errorText}`);
-            console.error(`[RTC] Received ICE candidate error code=${errorCode}, text=${errorText}`);
+            console.log(`[WDI] Received ICE candidate error code=${errorCode}, text=${errorText}`);
+            console.error(`[WDI] Received ICE candidate error code=${errorCode}, text=${errorText}`);
         }
     }
 
     private onTrack(track: MediaStreamTrack, streams: MediaStream[]) {
-        console.log(`[RTC] Receiving ${track.kind} track ${track.id}`);
+        console.log(`[WDI] Receiving ${track.kind} track ${track.id}`);
         console.log(`      Streams:`);
         for (let stream of streams) {
             console.log(`      - [${stream.getAudioTracks().length} audio, ${stream.getVideoTracks().length} video] ${stream.id}`);
@@ -191,7 +234,7 @@ export class WDIPeer {
         if (this._isClosed)
             return;
         this._isClosed = true;
-        
+
         console.log(`[WDI] Connection is ending.`);
         console.log(`[WDI] Ending ${this.remoteStreams.size} remote streams...`);
         this.remoteStreams.forEach(stream => stream._notifyEnded());
@@ -243,7 +286,7 @@ export class WDIPeer {
             this._connectionState = 'disconnected';
         }
     }
-    
+
     sendDataMessage(message: any) {
         if (this._channel)
             this._channel.send(JSON.stringify(message));
@@ -258,7 +301,7 @@ export class WDIPeer {
         };
 
         this._streams.push(addedStream);
-        
+
         console.log(`[WDI] Adding stream to RTC connection...`);
         for (let track of addedStream.stream.getTracks()) {
             let addedTrack = addedStream.tracks.find(x => x.track === track);
@@ -284,7 +327,7 @@ export class WDIPeer {
         let index = this._streams.findIndex(x => x.stream === stream);
         if (index < 0)
             return false;
-        
+
         let addedStream = this._streams[index];
         this._streams.splice(index, 1);
 
@@ -301,10 +344,10 @@ export class WDIPeer {
      * Acquire the stream corresponding to the given identity from the remote side.
      * If the request cannot be fulfilled, this method will throw an error, otherwise
      * it will resolve to a MediaStream that can be used locally.
-     * 
-     * Implementors should call addStream() and return the new stream if a new stream is created as 
+     *
+     * Implementors should call addStream() and return the new stream if a new stream is created as
      * a result of this call.
-     * 
+     *
      * TODO: This can't work, right?
      */
     @conduit.Method()
