@@ -3,10 +3,9 @@
 
 [![Version](https://img.shields.io/npm/v/@astronautlabs/wdi.svg)](https://www.npmjs.com/package/@astronautlabs/wdi)
 
-> **Alpha Quality**  
-> This software is new and unstable. Use with caution, and avoid use in 
-> production without careful consideration. Major API changes may be made 
-> frequently.
+> **Beta Quality**  
+> This software is working as-designed but has not yet been proven in a production design at Astronaut Labs.
+> Use with caution. Please report feedback! 
 
 > 📺 Part of the [**Astronaut Labs Broadcast Suite**](https://github.com/astronautlabs/broadcast)
 
