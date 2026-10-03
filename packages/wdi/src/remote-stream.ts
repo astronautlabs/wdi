@@ -4,7 +4,7 @@ import { StreamIdentity } from "./interface";
 export class RemoteStream {
     constructor(
         readonly stream : MediaStream,
-        readonly identity : StreamIdentity
+        readonly identity : StreamIdentity | undefined
     ) {
     }
 

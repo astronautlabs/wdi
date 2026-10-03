@@ -78,10 +78,10 @@ export class WDIPeer {
     private _remoteStreamsChanged$ = this._remoteStreamsChanged.asObservable();
     private _remoteStreams = new Set<RemoteStream>();
     private _streamIdentities = new Map<string, StreamIdentity>();
-    private _rtcConnection: RTCPeerConnection;
-    private _connectionState: string;
-    private _channel: RTCDataChannel;
-    private _remotePeer: conduit.Proxied<WDIPeer>;
+    private _rtcConnection: RTCPeerConnection | null;
+    private _connectionState: RTCPeerConnectionState = 'new';
+    private _channel?: RTCDataChannel;
+    private _remotePeer?: conduit.Proxied<WDIPeer>;
     private _iceCandidates = new Subject<RTCIceCandidate>();
     private _iceCandidates$ = this._iceCandidates.asObservable();
     private _offers = new Subject<RTCSessionDescriptionInit>();
@@ -121,6 +121,8 @@ export class WDIPeer {
         this._remotePeer = peer;
         this._remotePeer.iceCandidates.subscribe(async candidate => {
             try {
+                if (!this.rtcConnection)
+                    throw new Error(`No connection`);
                 if (!this.rtcConnection.remoteDescription) {
                     console.log(`[WDI] Saving ICE candidate as pending (no remote description yet)`);
                     pendingIceCandidates.push(candidate);
@@ -134,6 +136,8 @@ export class WDIPeer {
         });
         this._remotePeer.offers.subscribe(async offer => {
             console.log(`[WDI] Received offer, applying remote description...`);
+            if (!this.rtcConnection)
+                throw new Error(`No connection`);
             await this.rtcConnection.setRemoteDescription(offer);
             let answer = await this.rtcConnection.createAnswer();
             this.rtcConnection.setLocalDescription(answer);
@@ -147,6 +151,8 @@ export class WDIPeer {
         });
         this._remotePeer.answers.subscribe(async answer => {
             console.log(`[WDI] Received answer, applying remote description.`);
+            if (!this.rtcConnection)
+                throw new Error(`No connection`);
             await this.rtcConnection.setRemoteDescription(answer);
             if (pendingIceCandidates.length > 0)
                 console.log(`[WDI] Flushing ${pendingIceCandidates.length} pending ICE candidates...`);
@@ -174,6 +180,8 @@ export class WDIPeer {
             await this.linkEstablished;
 
             console.log(`[WDI] Creating offer...`);
+            if (!this.rtcConnection)
+                throw new Error(`No connection`);
             let sdp = await this.rtcConnection.createOffer();
             console.log(`[WDI] Setting local description...`);
             await this.rtcConnection.setLocalDescription(sdp);
@@ -185,6 +193,8 @@ export class WDIPeer {
     }
 
     private onConnectionStateChange() {
+        if (!this._rtcConnection)
+            throw new Error(`No connection`);
         if (this._connectionState === this._rtcConnection.connectionState)
             return;
 
@@ -238,6 +248,8 @@ export class WDIPeer {
         console.log(`[WDI] Connection is ending.`);
         console.log(`[WDI] Ending ${this.remoteStreams.size} remote streams...`);
         this.remoteStreams.forEach(stream => stream._notifyEnded());
+        if (!this._rtcConnection)
+            throw new Error(`No connection`);
         this._rtcConnection.close();
     }
 
@@ -308,11 +320,13 @@ export class WDIPeer {
             if (addedTrack)
                 continue;
 
+            if (!this._rtcConnection)
+                throw new Error(`No connection`);
             let sender = this._rtcConnection.addTrack(track, addedStream.stream);
             let params = sender.getParameters();
 
             params.degradationPreference = 'maintain-resolution';
-            params['priority'] = 'high';
+            (params as any)['priority'] = 'high';
             sender.setParameters(params);
             addedStream.tracks.push({ track, sender });
         }
@@ -331,7 +345,9 @@ export class WDIPeer {
         let addedStream = this._streams[index];
         this._streams.splice(index, 1);
 
-        addedStream.tracks.forEach(track => this._rtcConnection.removeTrack(track.sender));
+        if (!this._rtcConnection)
+            throw new Error(`No connection`);
+        addedStream.tracks.forEach(track => this._rtcConnection!.removeTrack(track.sender));
         addedStream.tracks = [];
 
         console.log(`[WDI] Announcing stream removal to peer: ${addedStream.stream.id}`);

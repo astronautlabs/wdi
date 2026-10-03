@@ -111,7 +111,7 @@ new MediaStream([ myTrack, ... ]);
 WebRTC uses adaptive bitrate streaming to ensure quality of service for clients 
 which are bandwidth-limited, including adaptive resolution. This is important 
 to note, because you may not realize that the video frames given to you by 
-`wrtc` do not have a static width/height. Even on network links that are not 
+`@astronautlabs/webrtc` do not have a static width/height. Even on network links that are not 
 bandwidth-limited (like localhost), most WebRTC implementations start a new 
 stream at lower resolution and gradually ramp up resolution as the bandwidth 
 measurement system gets more data. 

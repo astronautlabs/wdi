@@ -2,8 +2,8 @@
     "compilerOptions": {
         "outDir": "dist",
         "target": "ES2016",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
+        "module": "node16",
+        "moduleResolution": "node16",
         "declaration": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,

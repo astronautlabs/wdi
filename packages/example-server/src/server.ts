@@ -1,7 +1,7 @@
 import '@alterior/platform-nodejs';
 import { WDIPeer } from '@astronautlabs/wdi';
-import { RTCPeerConnection, RTCVideoSink, RTCAudioSink } from 'wrtc';
-import { nonstandard as wrtcns } from 'wrtc';
+import { RTCPeerConnection, RTCVideoSink, RTCAudioSink } from '@astronautlabs/webrtc';
+import { nonstandard as wrtcns } from '@astronautlabs/webrtc';
 const { RTCAudioSink, RTCVideoSink, i420ToRgba, rgbaToI420 } = wrtcns;
 
 import ffmpeg from 'fluent-ffmpeg';

@@ -92,11 +92,10 @@ for that request.
 # Usage on the Server
 
 In addition to WDI itself, you will need implementations for WebRTC and 
-WebSockets. We recommend `wrtc` (based on Google's `libwebrtc`) and 
-`ws`, but you can use any standards compliant implementations.
+WebSockets. We recommend `@astronautlabs/webrtc` and `ws`, but you can use any standards compliant implementations.
 
 ```
-npm install @astronautlabs/wdi wrtc ws
+npm install @astronautlabs/wdi @astronautlabs/webrtc ws
 ```
 
 You'll need to ensure that the `RTCPeerConnection` class from your chosen
