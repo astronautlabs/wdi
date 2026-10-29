@@ -304,7 +304,7 @@ export class WDIPeer {
             this._channel.send(JSON.stringify(message));
     }
 
-    async addStream(stream : MediaStream, identity : string | StreamIdentity) {
+    async addStream(stream : MediaStream, identity : string | StreamIdentity, sendParameters?: RTCRtpSendParameters) {
         console.log(`[WDI] Adding outgoing stream ${stream.id}`);
         let addedStream : AddedStream = {
             identity: typeof identity === 'string' ? { url: identity } : identity,
@@ -323,9 +323,7 @@ export class WDIPeer {
             if (!this._rtcConnection)
                 throw new Error(`No connection`);
             let sender = this._rtcConnection.addTrack(track, addedStream.stream);
-            let params = sender.getParameters();
-
-            params.degradationPreference = 'maintain-resolution';
+            let params = { ...sender.getParameters(), ...(sendParameters ?? {}) };
             (params as any)['priority'] = 'high';
             sender.setParameters(params);
             addedStream.tracks.push({ track, sender });

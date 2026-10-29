@@ -1,3 +1,10 @@
+# 0.0.16
+
+- No longer hardcodes `degradationPreference = 'maintain-resolution'`, instead using browser-default, but also now 
+  accepts RTC sender parameters when adding the stream to allow these options to be set yourself. If you relied on this 
+  policy, you will need to add that yourself. There are other strategies (and other parameters) that may be desirable 
+  depending on your use cases.
+
 # 0.0.14
 
 - Fixes for connection establishment issues
